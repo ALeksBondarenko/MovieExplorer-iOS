@@ -17,3 +17,5 @@ struct KeywordsPage: Equatable, Codable {
         case totalPages = "total_pages"
     }
 }
+
+extension KeywordsPage: PageResponse {}

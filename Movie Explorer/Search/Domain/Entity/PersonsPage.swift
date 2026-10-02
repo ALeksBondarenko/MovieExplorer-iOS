@@ -17,3 +17,5 @@ struct PersonsPage: Equatable, Codable {
         case totalPages = "total_pages"
     }
 }
+
+extension PersonsPage: PageResponse {}
