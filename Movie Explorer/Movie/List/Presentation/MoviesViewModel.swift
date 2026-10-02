@@ -8,6 +8,7 @@
 import Foundation
 import Combine
 
+@MainActor
 class MoviesViewModel: ViewModel {
     
     private let repository: MoviesRepository
@@ -51,7 +52,8 @@ class MoviesViewModel: ViewModel {
     
     private func fetchPage(movies: [Movie] = [], nextPage: Int) {
         cancelAllTasks()
-        addTask { @MainActor in
+        addTask { @MainActor [weak self] in
+            guard let self else { return }
             do {
                 let page = try await self.repository.fetchMovies(page: nextPage)
                 self.currentPage = page.page ?? nextPage

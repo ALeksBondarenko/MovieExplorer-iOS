@@ -7,7 +7,7 @@
 import Foundation
 import Combine
 
-class MovieDetailsViewModel: ViewModel {
+final class MovieDetailsViewModel: ViewModel {
     private let repository: MovieDetailRepository
     private let authRepository: AuthRepository
     let movie: Movie
@@ -24,7 +24,8 @@ class MovieDetailsViewModel: ViewModel {
     }
 
     func requestDetails() {
-        addTask { @MainActor in
+        addTask { @MainActor [weak self] in
+            guard let self else { return }
             do {
                 async let detailsResult = self.repository.getDetailsOfMovie(movieId: self.movie.id)
                 async let videosResult = self.repository.getVideos(movieId: self.movie.id)
@@ -76,7 +77,8 @@ class MovieDetailsViewModel: ViewModel {
         
         cancelAllTasks()
         
-        addTask { @MainActor in
+        addTask { @MainActor [weak self] in
+            guard let self else { return }
             do {
                 let result = try await self.repository.getSimilar(movieId: self.movie.id, page: self.page + 1)
                 self.page = self.page + 1
@@ -100,7 +102,8 @@ class MovieDetailsViewModel: ViewModel {
     }
 
     func toggleFavorites() {
-        addTask { @MainActor in
+        addTask { @MainActor [weak self] in
+            guard let self else { return }
             guard case .success(let movie, let photos, let videos, let casts, let favorite, let watchLater, let similarMovies, _) = self.state else {
                 return
             }
@@ -121,7 +124,8 @@ class MovieDetailsViewModel: ViewModel {
     }
 
     func toggleWatchLater() {
-        addTask { @MainActor in
+        addTask { @MainActor [weak self] in
+            guard let self else { return }
             guard case .success(let movie, let photos, let videos, let casts, let favorite, let watchLater, let similarMovies, _) = self.state else {
                 return
             }

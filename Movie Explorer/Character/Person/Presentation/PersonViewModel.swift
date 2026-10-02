@@ -8,7 +8,7 @@
 import Foundation
 import Combine
 
-class PersonViewModel: ViewModel {
+final class PersonViewModel: ViewModel {
     
     private let repository: PersonRepository
     private let cast: Cast
@@ -23,7 +23,8 @@ class PersonViewModel: ViewModel {
     }
     
     func loadInitMoviePage() {
-        addTask { @MainActor in
+        addTask { @MainActor [weak self] in
+            guard let self else { return }
             do {
                 async let personResult = self.repository.getPerson(personId: self.cast.id)
                 async let photosResult = self.repository.getPersonImages(personId: self.cast.id)
@@ -62,7 +63,8 @@ class PersonViewModel: ViewModel {
 
     private func fetchPage(person: Person, photos: [PersonImage], movies: [Movie] = [], nextPage: Int) {
         cancelAllTasks()
-        addTask { @MainActor in
+        addTask { @MainActor [weak self] in
+            guard let self else { return }
             do {
                 let result = try await self.repository.getMoviesWithPerson(personId: self.cast.id, page: nextPage)
                 self.page = nextPage

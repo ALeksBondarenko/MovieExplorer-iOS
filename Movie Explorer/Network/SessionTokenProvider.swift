@@ -17,6 +17,6 @@ final class DefaultSessionTokenProvider: SessionTokenProvider {
     }
 
     func currentBearerToken() -> String {
-        sessionStore.load()?.accessToken ?? Environment.apiKey
+        sessionStore.load()?.accessToken ?? AppConfig.apiKey
     }
 }

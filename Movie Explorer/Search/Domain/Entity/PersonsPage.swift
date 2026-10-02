@@ -7,8 +7,6 @@
 
 import Foundation
 
-// /search/person items are decoded directly as Cast (character stays nil)
-// so the existing PersonView and Destination.characterInfo(Cast) can be reused as-is.
 struct PersonsPage: Equatable, Codable {
     let page: Int?
     let results: [Cast]

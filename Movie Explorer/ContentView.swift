@@ -10,32 +10,40 @@ import SwiftData
 import Swinject
 
 struct ContentView: View {
-    @EnvironmentObject var coordinator: Coordinator
+    private var di: Container { DIContainer.shared.container }
     
     var body: some View {
         TabView {
             Tab("movies_tab_name", systemImage: "movieclapper") {
-                MoviesScreen(viewModel: DIContainer.shared.container.resolve(MoviesViewModel.self)!)
-                    .environmentObject(coordinator)
+                NavigationStack {
+                    MoviesScreen(viewModel: di.resolve(MoviesViewModel.self)!)
+                        .withAppRoutes()
+                }
             }
             
             Tab("watchlist_tab_name", systemImage: "bookmark") {
-                WatchListScreen(viewModel: DIContainer.shared.container.resolve(WatchListViewModel.self)!)
-                    .environmentObject(coordinator)
+                NavigationStack {
+                    WatchListScreen(viewModel: di.resolve(WatchListViewModel.self)!)
+                        .withAppRoutes()
+                }
             }
             
             Tab("favorite_tab_name", systemImage: "heart") {
-                FavotireMoviesScreen(viewModel: DIContainer.shared.container.resolve(FavotireMoviesViewModel.self)!)
-                    .environmentObject(coordinator)
-            }
-            
-            Tab("search_tab_name", systemImage: "magnifyingglass") {
-                SearchScreen(viewModel: DIContainer.shared.container.resolve(SearchViewModel.self)!)
-                .environmentObject(coordinator)
+                NavigationStack {
+                    FavotireMoviesScreen(viewModel: di.resolve(FavotireMoviesViewModel.self)!)
+                        .withAppRoutes()
+                }
             }
             
             Tab("aboutButtonAccessibilityLabel", systemImage: "info.circle") {
                 AboutView()
+            }
+            
+            Tab("search_tab_name", systemImage: "magnifyingglass", role: .search) {
+                NavigationStack {
+                    SearchScreen(viewModel: di.resolve(SearchViewModel.self)!)
+                        .withAppRoutes()
+                }
             }
         }
     }
@@ -43,5 +51,4 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .environmentObject(Coordinator())
 }

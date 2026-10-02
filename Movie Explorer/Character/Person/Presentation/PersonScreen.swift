@@ -8,12 +8,16 @@
 import SwiftUI
 
 struct PersonScreen: View {
-    
-    @StateObject var viewModel: PersonViewModel
-    @EnvironmentObject private var coordinator: Coordinator
+    @Environment(\.dismiss) private var dismiss
 
     @State private var selectedPhotoIndex: Int = 0
     @State private var isShowingPhotoGallery = false
+    
+    @StateObject var viewModel: PersonViewModel
+    
+    init(viewModel: @autoclosure @escaping () -> PersonViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel())
+    }
 
     var body: some View {
         Group {
@@ -34,14 +38,11 @@ struct PersonScreen: View {
                     onCancel: viewModel.clearError,
                 )
             case .error(let error):
-                ErrorView(error: error, onRetry: viewModel.loadInitMoviePage, onCancel: coordinator.pop)
+                ErrorView(error: error, onRetry: viewModel.loadInitMoviePage, onCancel: { dismiss() })
             }
         }
         .onAppear {
             viewModel.loadInitMoviePage()
-        }
-        .onDisappear {
-            viewModel.cancelAllTasks()
         }
     }
     
@@ -126,15 +127,15 @@ struct PersonScreen: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(spacing: 12) {
                         ForEach(movies, id: \.id) { movie in
-                            PosterView(movie: movie)
-                                .onAppear {
-                                    if movie == movies.last {
-                                        loadNextMoviePage()
+                            NavigationLink(value: Route.details(movie)) {
+                                PosterView(movie: movie)
+                                    .onAppear {
+                                        if movie == movies.last {
+                                            loadNextMoviePage()
+                                        }
                                     }
-                                }
-                                .onTapGesture {
-                                    coordinator.route(destination: .details(movie))
-                                }
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding(.horizontal, 15)
@@ -185,5 +186,4 @@ struct PersonScreen: View {
         sessionTokenProvider: DefaultSessionTokenProvider(sessionStore: KeychainSessionStore()),
         urlSession: .shared
     ))), cast: Cast(id: 16828, character: "Buzz Lightyear (voice)", name: "Chris Evans", profilePath: "/3bOGNsHlrswhyW79uvIHH1V43JI.jpg")))
-        .environmentObject(Coordinator())
 }

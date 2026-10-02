@@ -15,7 +15,7 @@ struct MovieExplorerApp: App {
 
     var body: some Scene {
         WindowGroup {
-            CoordinatorView()
+            ContentView()
         }
     }
 }

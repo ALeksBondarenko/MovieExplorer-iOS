@@ -10,7 +10,10 @@ import SwiftUI
 struct FavotireMoviesScreen: View {
     
     @StateObject var viewModel: FavotireMoviesViewModel
-    @EnvironmentObject var coordinator: Coordinator
+    
+    init(viewModel: @autoclosure @escaping () -> FavotireMoviesViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel())
+    }
     
     var body: some View {
         Group {
@@ -35,9 +38,6 @@ struct FavotireMoviesScreen: View {
             }
         }.onAppear {
             viewModel.fetchFavotireMovies()
-        }
-        .onDisappear {
-            viewModel.cancelAllTasks()
         }
     }
 
@@ -81,15 +81,15 @@ struct FavotireMoviesScreen: View {
         ScrollView(.vertical, showsIndicators: false) {
             LazyVGrid(columns: [GridItem(.flexible()),GridItem(.flexible())], spacing: 12) {
                 ForEach(movies, id: \.id) { movie in
-                    PosterView(movie: movie)
-                        .onAppear {
-                            if movie == movies.last {
-                                loadNextPage()
+                    NavigationLink(value: Route.details(movie)) {
+                        PosterView(movie: movie)
+                            .onAppear {
+                                if movie == movies.last {
+                                    loadNextPage()
+                                }
                             }
-                        }
-                        .onTapGesture {
-                            coordinator.route(destination: .details(movie))
-                        }
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal)
@@ -133,5 +133,4 @@ struct FavotireMoviesScreen: View {
             webAuthPresenter: WebAuthPresenter()
         )
     ))
-        .environmentObject(Coordinator())
 }

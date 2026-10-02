@@ -7,8 +7,6 @@ import SwiftUI
 
 struct AboutView: View {
 
-    @SwiftUI.Environment(\.dismiss) private var dismiss
-
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 16) {
@@ -23,13 +21,6 @@ struct AboutView: View {
             .padding()
             .navigationTitle("aboutTitle")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("close") {
-                        dismiss()
-                    }
-                }
-            }
         }
     }
 }

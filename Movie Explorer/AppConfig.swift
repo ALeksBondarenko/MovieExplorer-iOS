@@ -7,7 +7,7 @@
 
 import Foundation
 
-public enum Environment {
+public enum AppConfig {
     enum Keys {
         static let apiKey = "API_KEY"
     }
@@ -20,7 +20,7 @@ public enum Environment {
     }()
 
     static let apiKey: String = {
-        guard let apiKey = Environment.infoDictionary[Keys.apiKey] as? String else {
+        guard let apiKey = AppConfig.infoDictionary[Keys.apiKey] as? String else {
             fatalError("API key not found in plist file")
         }
         return apiKey

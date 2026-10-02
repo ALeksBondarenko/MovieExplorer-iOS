@@ -8,6 +8,7 @@
 import Foundation
 import Combine
 
+@MainActor
 final class GenreByMoviesViewModel: ViewModel {
     private let repository: MoviesRepository
     private let genre: Genres
@@ -54,7 +55,8 @@ final class GenreByMoviesViewModel: ViewModel {
 
     private func fetchPage(movies: [Movie] = [], nextPage: Int) {
         cancelAllTasks()
-        addTask { @MainActor in
+        addTask { @MainActor [weak self] in
+            guard let self else { return }
             do {
                 let page = try await self.repository.fetchMovies(page: nextPage, genre: self.genre)
                 self.currentPage = page.page ?? nextPage

@@ -8,7 +8,7 @@
 import Combine
 import Foundation
 
-class WatchListViewModel: ViewModel {
+final class WatchListViewModel: ViewModel {
 
     private let repository: WatchListRepository
     private let authRepository: AuthRepository
@@ -34,7 +34,8 @@ class WatchListViewModel: ViewModel {
     }
 
     func login() {
-        addTask { @MainActor in
+        addTask { @MainActor [weak self] in
+            guard let self else { return }
             do {
                 try await self.authRepository.login()
                 self.state = .idle
@@ -69,7 +70,8 @@ class WatchListViewModel: ViewModel {
 
     private func fetchPage(movies: [Movie] = [], nextPage: Int) {
         cancelAllTasks()
-        addTask { @MainActor in
+        addTask { @MainActor [weak self] in
+            guard let self else { return }
             do {
                 let page = try await self.repository.fetchMovies(page: nextPage)
                 self.currentPage = page.page ?? nextPage

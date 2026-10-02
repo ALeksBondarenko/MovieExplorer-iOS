@@ -11,7 +11,10 @@ import Swinject
 struct WatchListScreen: View {
     
     @StateObject var viewModel: WatchListViewModel
-    @EnvironmentObject var coordinator: Coordinator
+    
+    init(viewModel: @autoclosure @escaping () -> WatchListViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel())
+    }
     
     var body: some View {
         Group {
@@ -36,9 +39,6 @@ struct WatchListScreen: View {
             }
         }.onAppear {
             viewModel.fetchMovies()
-        }
-        .onDisappear {
-            viewModel.cancelAllTasks()
         }
     }
 
@@ -82,15 +82,15 @@ struct WatchListScreen: View {
         ScrollView(.vertical, showsIndicators: false) {
             LazyVGrid(columns: [GridItem(.flexible()),GridItem(.flexible())], spacing: 12) {
                 ForEach(movies, id: \.id) { movie in
-                    PosterView(movie: movie)
-                        .onAppear {
-                            if movie == movies.last {
-                                loadNextPage()
+                    NavigationLink(value: Route.details(movie)) {
+                        PosterView(movie: movie)
+                            .onAppear {
+                                if movie == movies.last {
+                                    loadNextPage()
+                                }
                             }
-                        }
-                        .onTapGesture {
-                            coordinator.route(destination: .details(movie))
-                        }
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal)
@@ -102,5 +102,4 @@ struct WatchListScreen: View {
 
 #Preview {
     WatchListScreen(viewModel: DIContainer.shared.container.resolve(WatchListViewModel.self)!)
-        .environmentObject(Coordinator())
 }

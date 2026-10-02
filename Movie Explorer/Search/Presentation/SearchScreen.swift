@@ -9,8 +9,11 @@ import SwiftUI
 
 struct SearchScreen: View {
     @StateObject var viewModel: SearchViewModel
-    @EnvironmentObject var coordinator: Coordinator
     @FocusState private var isFocused: Bool
+    
+    init(viewModel: @autoclosure @escaping () -> SearchViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel())
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -28,11 +31,8 @@ struct SearchScreen: View {
                     resultsView(content)
                 }
             case .error(let error):
-                ErrorView(error: error, onRetry: viewModel.retry, onCancel: coordinator.pop)
+                ErrorView(error: error, onRetry: viewModel.retry, onCancel: { viewModel.query = "" })
             }
-        }
-        .onDisappear {
-            viewModel.cancelAllTasks()
         }
     }
 
@@ -82,10 +82,10 @@ struct SearchScreen: View {
                     loadMore: viewModel.loadMoreMovies,
                     retry: viewModel.retryMovies
                 ) { movie in
-                    PosterView(movie: movie)
-                        .onTapGesture {
-                            coordinator.route(destination: .details(movie))
-                        }
+                    NavigationLink(value: Route.details(movie)) {
+                        PosterView(movie: movie)
+                    }
+                    .buttonStyle(.plain)
                 }
 
                 HorizontalSection(
@@ -94,10 +94,10 @@ struct SearchScreen: View {
                     loadMore: viewModel.loadMorePersons,
                     retry: viewModel.retryPersons
                 ) { cast in
-                    PersonView(cast: cast)
-                        .onTapGesture {
-                            coordinator.route(destination: .characterInfo(cast))
-                        }
+                    NavigationLink(value: Route.person(cast)) {
+                        PersonView(cast: cast)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(.vertical)
@@ -186,5 +186,4 @@ struct SearchScreen: View {
             )
         )
     ))
-    .environmentObject(Coordinator())
 }

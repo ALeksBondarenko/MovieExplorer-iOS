@@ -11,7 +11,10 @@ import Swinject
 struct GenreByMoviesScreen: View {
 
     @StateObject var viewModel: GenreByMoviesViewModel
-    @EnvironmentObject var coordinator: Coordinator
+    
+    init(viewModel: @autoclosure @escaping () -> GenreByMoviesViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel())
+    }
 
     var body: some View {
         Group {
@@ -36,9 +39,6 @@ struct GenreByMoviesScreen: View {
         .onAppear {
             viewModel.fetchMovies()
         }
-        .onDisappear {
-            viewModel.cancelAllTasks()
-        }
     }
 
     @ViewBuilder
@@ -50,15 +50,15 @@ struct GenreByMoviesScreen: View {
         ScrollView(.vertical, showsIndicators: false) {
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())]) {
                 ForEach(movies, id: \.id) { movie in
-                    PosterView(movie: movie)
-                        .onAppear {
-                            if movie == movies.last {
-                                loadNextPage()
+                    NavigationLink(value: Route.details(movie)) {
+                        PosterView(movie: movie)
+                            .onAppear {
+                                if movie == movies.last {
+                                    loadNextPage()
+                                }
                             }
-                        }
-                        .onTapGesture {
-                            coordinator.route(destination: .details(movie))
-                        }
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal)
@@ -75,5 +75,4 @@ struct GenreByMoviesScreen: View {
             argument: Genres(id: 16, name: "Мультфильмы")
         )!
     )
-    .environmentObject(Coordinator())
 }

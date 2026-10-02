@@ -8,7 +8,7 @@
 import Foundation
 import Combine
 
-class FavotireMoviesViewModel: ViewModel {
+final class FavotireMoviesViewModel: ViewModel {
 
     private let repository: FavoriteRepository
     private let authRepository: AuthRepository
@@ -35,7 +35,8 @@ class FavotireMoviesViewModel: ViewModel {
     }
 
     func login() {
-        addTask { @MainActor in
+        addTask { @MainActor [weak self] in
+            guard let self else { return }
             do {
                 try await self.authRepository.login()
                 self.state = .idle
@@ -71,7 +72,8 @@ class FavotireMoviesViewModel: ViewModel {
     private func fetchPage(movies: [Movie] = [], nextPage: Int) {
         cancelAllTasks()
 
-        addTask { @MainActor in
+        addTask { @MainActor [weak self] in
+            guard let self else { return }
             do {
                 let page = try await self.repository.fetchFavoriteMovies(page: nextPage)
                 self.currentPage = page.page ?? nextPage

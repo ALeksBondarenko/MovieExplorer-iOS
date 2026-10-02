@@ -8,6 +8,7 @@
 import Foundation
 import Combine
 
+@MainActor
 class SearchViewModel: ViewModel {
 
     private static let minimumQueryLength = 3
@@ -108,7 +109,8 @@ class SearchViewModel: ViewModel {
         let token = requestToken
         state = .searching
 
-        addTask { @MainActor in
+        addTask { @MainActor [weak self] in
+            guard let self else { return }
             if !immediate {
                 do {
                     try await Task.sleep(nanoseconds: Self.debounceNanoseconds)
@@ -200,7 +202,8 @@ class SearchViewModel: ViewModel {
         content[keyPath: keyPath].pageError = nil
         state = .content(content)
 
-        addTask { @MainActor in
+        addTask { @MainActor [weak self] in
+            guard let self else { return }
             do {
                 let result = try await fetch(query, nextPage)
                 self.appendPage(keyPath, token: token, items: result.items, currentPage: result.currentPage, totalPages: result.totalPages)
@@ -255,7 +258,8 @@ class SearchViewModel: ViewModel {
         content[keyPath: keyPath].initialError = nil
         state = .content(content)
 
-        addTask { @MainActor in
+        addTask { @MainActor [weak self] in
+            guard let self else { return }
             do {
                 let result = try await fetch(query)
                 self.replaceFirstPage(keyPath, token: token, items: result.items, currentPage: result.currentPage, totalPages: result.totalPages)

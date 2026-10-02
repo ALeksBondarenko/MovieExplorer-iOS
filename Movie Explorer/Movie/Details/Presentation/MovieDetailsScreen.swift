@@ -8,12 +8,16 @@
 import SwiftUI
 
 struct MovieDetailsScreen: View {
+    @Environment(\.dismiss) private var dismiss
 
     @StateObject var viewModel: MovieDetailsViewModel
-    @EnvironmentObject var coordinator: Coordinator
 
     @State private var selectedImageIndex: Int = 0
     @State private var isShowingImageGallery = false
+    
+    init(viewModel: @autoclosure @escaping () -> MovieDetailsViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel())
+    }
 
     var body: some View {
         Group {
@@ -48,15 +52,12 @@ struct MovieDetailsScreen: View {
                 ErrorView(
                     error: error,
                     onRetry: viewModel.requestDetails,
-                    onCancel: coordinator.pop
+                    onCancel: { dismiss() }
                 )
             }
         }
         .onAppear {
             viewModel.requestDetails()
-        }
-        .onDisappear {
-            viewModel.cancelAllTasks()
         }
     }
 
@@ -78,18 +79,16 @@ struct MovieDetailsScreen: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack {
                         ForEach(movieDetails.genres, id: \.id) { genre in
-                            Text(genre.name)
-                                .font(.caption.bold())
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(.blue)
-                                .cornerRadius(18)
-                                .onTapGesture {
-                                    coordinator.route(
-                                        destination: .genre(genre)
-                                    )
-                                }
+                            NavigationLink(value: Route.genre(genre)) {
+                                Text(genre.name)
+                                    .font(.caption.bold())
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(.blue)
+                                    .cornerRadius(18)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }.padding(.horizontal)
                 }.padding(.top)
@@ -173,12 +172,10 @@ struct MovieDetailsScreen: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 10) {
                             ForEach(casts, id: \.id) { cast in
-                                PersonView(cast: cast)
-                                    .onTapGesture {
-                                        coordinator.route(
-                                            destination: .characterInfo(cast)
-                                        )
-                                    }
+                                NavigationLink(value: Route.person(cast)) {
+                                    PersonView(cast: cast)
+                                }
+                                .buttonStyle(.plain)
                             }
                         }.padding(.horizontal)
                     }
@@ -194,15 +191,15 @@ struct MovieDetailsScreen: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         LazyHStack(spacing: 12) {
                             ForEach(similarMovies, id: \.id) { movie in
-                                PosterView(movie: movie)
-                                    .onAppear {
-                                        if movie == similarMovies.last {
-                                            loadMoreSimilarMovies()
+                                NavigationLink(value: Route.details(movie)) {
+                                    PosterView(movie: movie)
+                                        .onAppear {
+                                            if movie == similarMovies.last {
+                                                loadMoreSimilarMovies()
+                                            }
                                         }
-                                    }
-                                    .onTapGesture {
-                                        coordinator.route(destination: .details(movie))
-                                    }
+                                }
+                                .buttonStyle(.plain)
                             }
                         }
                         .padding(.horizontal, 15)
@@ -211,16 +208,7 @@ struct MovieDetailsScreen: View {
             }
         }
         .frame(maxHeight: .infinity, alignment: .top)
-        .navigationBarBackButtonHidden(true)
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    coordinator.pop()
-                } label: {
-                    Label("back", systemImage: "chevron.left")
-                }
-            }
-
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     viewModel.toggleWatchLater()
@@ -387,7 +375,6 @@ extension View {
             )
         )
     )
-    .environmentObject(Coordinator())
     .preferredColorScheme(ColorScheme.dark)
 }
 
@@ -440,5 +427,4 @@ extension View {
             )
         )
     )
-    .environmentObject(Coordinator())
 }
