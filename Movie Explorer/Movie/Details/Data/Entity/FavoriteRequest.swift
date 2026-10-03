@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct FavoriteRequest: Encodable {
+nonisolated struct FavoriteRequest: Encodable {
     let mediaType: String = "movie"
     let mediaId: Int
     let favorite: Bool

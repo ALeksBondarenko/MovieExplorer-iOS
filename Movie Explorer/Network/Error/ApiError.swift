@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum ApiError: Error, LocalizedError {
+nonisolated enum ApiError: Error, LocalizedError {
     case invalidAPIKey
     case authenticationFailed
     case invalidParameters

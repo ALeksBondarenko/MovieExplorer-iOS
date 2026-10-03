@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct FavoriteResponse: Codable {
+nonisolated struct FavoriteResponse: Codable {
     let success: Bool
     let statusCode: Int
     let statusMessage: String

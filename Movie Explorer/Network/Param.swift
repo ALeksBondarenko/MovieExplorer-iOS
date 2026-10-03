@@ -7,7 +7,12 @@
 
 import Foundation
 
-struct Param {
+nonisolated struct Param: Sendable {
     let name: String
-    let value: Any
+    let value: String
+
+    init(name: String, value: CustomStringConvertible) {
+        self.name = name
+        self.value = value.description
+    }
 }

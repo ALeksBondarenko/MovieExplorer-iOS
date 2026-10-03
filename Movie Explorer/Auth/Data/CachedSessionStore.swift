@@ -7,7 +7,7 @@
 
 import Foundation
 
-final class CachedSessionStore: SessionStore, @unchecked Sendable {
+nonisolated final class CachedSessionStore: SessionStore, @unchecked Sendable {
 
     private enum Cache {
         case notLoaded

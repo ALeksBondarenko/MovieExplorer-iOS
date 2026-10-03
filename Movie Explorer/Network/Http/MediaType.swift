@@ -7,6 +7,6 @@
 
 import Foundation
 
-public enum MediaType: String {
+nonisolated public enum MediaType: String, Sendable {
     case json = "application/json"
 }

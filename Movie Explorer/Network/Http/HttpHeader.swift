@@ -7,7 +7,7 @@
 
 import Foundation
 
-public enum HttpHeader {
+nonisolated public enum HttpHeader: Sendable {
     case accept(MediaType)
     case authorization(AuthorizationType)
     case contentType(MediaType)

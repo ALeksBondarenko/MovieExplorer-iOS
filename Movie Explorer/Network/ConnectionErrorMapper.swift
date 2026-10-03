@@ -7,7 +7,7 @@
 
 import Foundation
 
-class ConnectionErrorMapper {
+nonisolated final class ConnectionErrorMapper: Sendable {
     
     func map(_ error: URLError) -> ConnectionError {
         switch error.code {

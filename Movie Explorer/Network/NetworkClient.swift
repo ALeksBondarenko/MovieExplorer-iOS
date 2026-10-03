@@ -7,7 +7,9 @@
 
 import Foundation
 
-final class NetworkClient {
+/// Runs requests and JSON decoding off the main actor.
+/// The app target uses MainActor as default isolation, so this type opts out explicitly.
+nonisolated final class NetworkClient: Sendable {
 
     private let connectionErrorMapper: ConnectionErrorMapper
     private let sessionTokenProvider: SessionTokenProvider
@@ -27,13 +29,14 @@ final class NetworkClient {
         self.urlSession = urlSession
     }
     
-    func request<T>(
+    @concurrent
+    func request<T: Decodable & Sendable>(
         _ httpMethod: HttpMethod,
         headers: [HttpHeader] = [],
         queryParams: [Param] = [],
-        body: Encodable? = nil,
+        body: (any Encodable & Sendable)? = nil,
         timeoutInterval: TimeInterval = 15,
-    ) async throws -> T where T: Decodable {
+    ) async throws -> T {
         guard let url = URL(string: httpMethod.path) else {
             throw ConnectionError.noUrl
         }

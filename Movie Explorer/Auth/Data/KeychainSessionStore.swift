@@ -6,7 +6,7 @@
 import Foundation
 import Security
 
-protocol SessionStore {
+nonisolated protocol SessionStore: Sendable {
 
     func load() -> AuthSession?
 
@@ -15,7 +15,7 @@ protocol SessionStore {
     func clear()
 }
 
-final class KeychainSessionStore: SessionStore {
+nonisolated final class KeychainSessionStore: SessionStore {
 
     private let service: String
     private let account: String

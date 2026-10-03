@@ -8,7 +8,7 @@
 
 import Foundation
 
-struct Frame: Equatable, Codable {
+nonisolated struct Frame: Equatable, Codable {
     let filePath: String
     
     enum CodingKeys: String, CodingKey {

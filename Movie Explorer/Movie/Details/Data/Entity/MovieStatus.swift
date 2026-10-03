@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct MovieStatus : Equatable, Codable {
+nonisolated struct MovieStatus : Equatable, Codable {
     let id: Int
     let favorite: Bool
     let watchlist: Bool

@@ -7,7 +7,9 @@
 
 import Foundation
 
-class Decoder {
+/// Immutable after init. DateFormatter is thread-safe for parsing on iOS 7+,
+/// so one instance can be shared by concurrent requests.
+nonisolated final class Decoder: @unchecked Sendable {
     private let decoder = JSONDecoder()
     private let dateFormatter = DateFormatter()
 

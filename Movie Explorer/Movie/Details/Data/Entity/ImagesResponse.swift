@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct ImagesResponse: Codable {
+nonisolated struct ImagesResponse: Codable {
     let backdrops: [Frame]
 }
 

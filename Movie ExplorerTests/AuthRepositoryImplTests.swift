@@ -32,7 +32,7 @@ struct AuthRepositoryImplTests {
         }
     }
 
-    final class MockSessionStore: SessionStore {
+    final class MockSessionStore: SessionStore, @unchecked Sendable {
         var stored: AuthSession?
         var clearCallCount = 0
 

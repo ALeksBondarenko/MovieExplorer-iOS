@@ -8,7 +8,7 @@
 
 import Foundation
 
-struct Cast: Hashable, Codable {
+nonisolated struct Cast: Hashable, Codable {
     let id: Int
     let character: String?
     let name: String?

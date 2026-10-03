@@ -7,12 +7,12 @@
 
 import Foundation
 
-struct PersonImages: Codable {
+nonisolated struct PersonImages: Codable {
     let profiles: [PersonImage]
 }
 
 
-struct PersonImage: Codable, Equatable {
+nonisolated struct PersonImage: Codable, Equatable {
     let filePath: String
     
     enum CodingKeys: String, CodingKey {

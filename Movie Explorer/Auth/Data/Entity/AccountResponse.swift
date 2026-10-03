@@ -5,6 +5,6 @@
 
 import Foundation
 
-struct AccountResponse: Decodable {
+nonisolated struct AccountResponse: Decodable {
     let id: Int
 }

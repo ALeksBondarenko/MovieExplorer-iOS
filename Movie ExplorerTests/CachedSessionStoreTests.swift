@@ -97,12 +97,12 @@ struct CachedSessionStoreTests {
 
     @Test
     func testConcurrentLoadsReadWrappedStoreOnce() async {
-        let wrapped = await CountingSessionStore(stored: session)
-        let store = await CachedSessionStore(wrapping: wrapped)
+        let wrapped = CountingSessionStore(stored: session)
+        let store = CachedSessionStore(wrapping: wrapped)
 
         await withTaskGroup(of: AuthSession?.self) { group in
             for _ in 0..<50 {
-                group.addTask { await store.load() }
+                group.addTask { store.load() }
             }
             for await loaded in group {
                 #expect(loaded == session)

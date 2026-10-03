@@ -8,7 +8,7 @@
 
 import Foundation
 
-enum HttpMethod {
+nonisolated enum HttpMethod: Sendable {
     case get(String)
     case post(String)
     

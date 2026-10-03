@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct RequestTokenRequest: Encodable {
+nonisolated struct RequestTokenRequest: Encodable {
     let redirectTo: String
 
     enum CodingKeys: String, CodingKey {
@@ -13,7 +13,7 @@ struct RequestTokenRequest: Encodable {
     }
 }
 
-struct RequestTokenResponse: Decodable {
+nonisolated struct RequestTokenResponse: Decodable {
     let success: Bool
     let requestToken: String
 

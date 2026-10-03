@@ -8,7 +8,7 @@
 
 import Foundation
 
-struct Video: Equatable, Codable {
+nonisolated struct Video: Equatable, Codable {
     let key: String
     let site: String
     let type: String

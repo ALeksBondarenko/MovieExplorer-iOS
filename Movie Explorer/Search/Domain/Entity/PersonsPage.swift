@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct PersonsPage: Equatable, Codable {
+nonisolated struct PersonsPage: Equatable, Codable {
     let page: Int?
     let results: [Cast]
     let totalPages: Int

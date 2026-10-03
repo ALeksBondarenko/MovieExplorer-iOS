@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum ConnectionError: Error {
+nonisolated enum ConnectionError: Error {
     case noUrl
     case badUrl
     case noInternet

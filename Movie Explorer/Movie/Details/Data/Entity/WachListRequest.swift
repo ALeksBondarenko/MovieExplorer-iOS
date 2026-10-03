@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct WachListRequest: Encodable {
+nonisolated struct WachListRequest: Encodable {
     let mediaType: String = "movie"
     let mediaId: Int
     let watchlist: Bool

@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct AuthSession: Equatable, Codable {
+nonisolated struct AuthSession: Equatable, Codable {
     let accessToken: String
     let accountId: Int
 }

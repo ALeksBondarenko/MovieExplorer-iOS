@@ -59,7 +59,7 @@ struct NetworkClientTests {
 
     struct EmptyResponse: Decodable {}
 
-    final class MutableTokenProvider: SessionTokenProvider {
+    final class MutableTokenProvider: SessionTokenProvider, @unchecked Sendable {
         var token: String
 
         init(token: String) {
@@ -82,7 +82,7 @@ struct NetworkClientTests {
         RecordingURLProtocol.capturedAuthorizationHeaders = [:]
 
         let tokenProvider = MutableTokenProvider(token: "token-1")
-        let client = await NetworkClient(
+        let client = NetworkClient(
             connectionErrorMapper: ConnectionErrorMapper(),
             sessionTokenProvider: tokenProvider,
             urlSession: makeMockURLSession()
@@ -106,7 +106,7 @@ struct NetworkClientTests {
         RecordingURLProtocol.capturedAuthorizationHeaders = [:]
 
         let tokenProvider = MutableTokenProvider(token: "default-token")
-        let client = await NetworkClient(
+        let client = NetworkClient(
             connectionErrorMapper: ConnectionErrorMapper(),
             sessionTokenProvider: tokenProvider,
             urlSession: makeMockURLSession()

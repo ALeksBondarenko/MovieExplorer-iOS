@@ -7,20 +7,13 @@
 
 import Foundation
 
-public enum AppConfig {
+nonisolated public enum AppConfig {
     enum Keys {
         static let apiKey = "API_KEY"
     }
 
-    private static let infoDictionary: [String: Any] = {
-        guard let dict = Bundle.main.infoDictionary else {
-            fatalError("plist file not found")
-        }
-        return dict
-    }()
-
     static let apiKey: String = {
-        guard let apiKey = AppConfig.infoDictionary[Keys.apiKey] as? String else {
+        guard let apiKey = Bundle.main.object(forInfoDictionaryKey: Keys.apiKey) as? String else {
             fatalError("API key not found in plist file")
         }
         return apiKey

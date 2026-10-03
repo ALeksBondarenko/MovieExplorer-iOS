@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct CastsResponse: Codable {
+nonisolated struct CastsResponse: Codable {
     let cast: [Cast]
 }
 

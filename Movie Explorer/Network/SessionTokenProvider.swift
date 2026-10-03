@@ -5,11 +5,11 @@
 
 import Foundation
 
-protocol SessionTokenProvider {
+nonisolated protocol SessionTokenProvider: Sendable {
     func currentBearerToken() -> String
 }
 
-final class DefaultSessionTokenProvider: SessionTokenProvider {
+nonisolated final class DefaultSessionTokenProvider: SessionTokenProvider {
     private let sessionStore: SessionStore
 
     init(sessionStore: SessionStore) {

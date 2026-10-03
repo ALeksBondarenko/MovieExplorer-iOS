@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct AccessTokenRequest: Encodable {
+nonisolated struct AccessTokenRequest: Encodable {
     let requestToken: String
 
     enum CodingKeys: String, CodingKey {
@@ -13,7 +13,7 @@ struct AccessTokenRequest: Encodable {
     }
 }
 
-struct AccessTokenResponse: Decodable {
+nonisolated struct AccessTokenResponse: Decodable {
     let success: Bool
     let accessToken: String
 

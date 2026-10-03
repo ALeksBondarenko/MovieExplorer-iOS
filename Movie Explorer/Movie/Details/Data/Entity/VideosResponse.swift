@@ -7,7 +7,7 @@
 
 import Foundation
 
-class VideosResponse: Codable {
+nonisolated final class VideosResponse: Codable, Sendable {
     let results: [Video]
 
     init(results: [Video]) {

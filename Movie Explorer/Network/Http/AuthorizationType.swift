@@ -7,7 +7,7 @@
 
 import Foundation
 
-public enum AuthorizationType {
+nonisolated public enum AuthorizationType: Sendable {
     case bearer(String)
 
     var value: String {

@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct KeywordsPage: Equatable, Codable {
+nonisolated struct KeywordsPage: Equatable, Codable {
     let page: Int?
     let results: [Keyword]
     let totalPages: Int

@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Person: Codable, Identifiable, Equatable {
+nonisolated struct Person: Codable, Identifiable, Equatable {
     let id: Int
     let name: String
     let profilePath: String?
