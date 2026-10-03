@@ -37,6 +37,7 @@ struct FavotireMoviesScreen: View {
         ZStack(alignment: .center) {
             Text("emptyFavorites")
                 .font(.body)
+                .accessibilityIdentifier("emptyState")
         }
     }
 
@@ -59,6 +60,7 @@ struct FavotireMoviesScreen: View {
                     .background(Color("PrimaryButtonColor"))
                     .cornerRadius(12)
             }
+            .accessibilityIdentifier("loginPrompt.button")
         }
         .padding()
     }

@@ -56,6 +56,7 @@ struct TrailerView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text("playTrailer"))
+        .accessibilityIdentifier("trailer.\(video.key)")
     }
 
     private var thumbnailURL: URL? {

@@ -83,6 +83,7 @@ struct MovieDetailsScreen: View {
                                     .cornerRadius(18)
                             }
                             .buttonStyle(.plain)
+                            .accessibilityIdentifier("genre.\(genre.id)")
                         }
                     }.padding(.horizontal)
                 }.padding(.top)
@@ -168,6 +169,7 @@ struct MovieDetailsScreen: View {
                                     PersonView(cast: cast)
                                 }
                                 .buttonStyle(.plain)
+                                .accessibilityIdentifier("person.\(cast.id)")
                             }
                         }.padding(.horizontal)
                     }
@@ -196,6 +198,9 @@ struct MovieDetailsScreen: View {
                     )
                     .foregroundColor(watchLater ? .red : .gray)
                 }
+                // The state is in the identifier: SwiftUI does not pass custom traits to toolbar buttons.
+                .accessibilityIdentifier("details.watchLaterButton.\(watchLater ? "on" : "off")")
+                .accessibilityAddTraits(watchLater ? .isSelected : [])
             }
 
             ToolbarItem(placement: .topBarTrailing) {
@@ -208,6 +213,8 @@ struct MovieDetailsScreen: View {
                     )
                     .foregroundColor(favorite ? .red : .gray)
                 }
+                .accessibilityIdentifier("details.favoriteButton.\(favorite ? "on" : "off")")
+                .accessibilityAddTraits(favorite ? .isSelected : [])
             }
         }
         .ignoresSafeArea()
@@ -258,6 +265,7 @@ struct MovieDetailsScreen: View {
                 VStack(alignment: .leading) {
                     Text(movieDetails.title)
                         .font(.title.bold())
+                        .accessibilityIdentifier("details.title")
 
                     if movieDetails.voteAverage > 0 {
                         HStack {

@@ -38,6 +38,7 @@ struct WatchListScreen: View {
         ZStack(alignment: .center) {
             Text("emptyWatchList")
                 .font(.body)
+                .accessibilityIdentifier("emptyState")
         }
     }
 
@@ -60,6 +61,7 @@ struct WatchListScreen: View {
                     .background(Color("PrimaryButtonColor"))
                     .cornerRadius(12)
             }
+            .accessibilityIdentifier("loginPrompt.button")
         }
         .padding()
     }

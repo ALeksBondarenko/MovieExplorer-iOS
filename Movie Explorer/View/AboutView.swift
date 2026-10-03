@@ -15,6 +15,7 @@ struct AboutView: View {
 
                 Link("aboutTMDBLinkTitle", destination: URL(string: "https://www.themoviedb.org")!)
                     .font(.body)
+                    .accessibilityIdentifier("about.tmdbLink")
 
                 Spacer()
             }

@@ -43,6 +43,7 @@ struct ErrorView: View {
                             .stroke(Color("ButtonColor"), lineWidth: 2)
                     )
             }
+            .accessibilityIdentifier("error.okButton")
             .padding(.bottom)
         }
         .padding()
@@ -78,6 +79,7 @@ struct ErrorView: View {
                                 .stroke(Color("PrimaryButtonColor"), lineWidth: 2)
                         )
                 }
+                .accessibilityIdentifier("error.cancelButton")
                 .padding(.horizontal)
                 
                 Button {
@@ -91,6 +93,7 @@ struct ErrorView: View {
                         .background(Color("PrimaryButtonColor"))
                         .cornerRadius(12)
                 }
+                .accessibilityIdentifier("error.retryButton")
                 .padding(.horizontal)
                 
             }

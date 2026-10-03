@@ -19,6 +19,7 @@ struct MoviesRowView: View {
                         PosterView(movie: movie)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("movie.\(movie.id)")
                     .paginated(movie, in: paginator)
                 }
 

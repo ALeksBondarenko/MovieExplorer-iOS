@@ -139,6 +139,7 @@ struct PersonScreen: View {
             VStack(alignment: .leading) {
                 Text(person.name)
                     .font(.title.bold())
+                    .accessibilityIdentifier("person.name")
                     .frame(maxWidth: .infinity, alignment: .leading)
                 
                 if let placeOfBirth = person.placeOfBirth {

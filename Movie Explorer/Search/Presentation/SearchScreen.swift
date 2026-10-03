@@ -41,6 +41,7 @@ struct SearchScreen: View {
             Image(systemName: "magnifyingglass")
             TextField("searchMovies", text: $viewModel.query)
                 .focused($isFocused)
+                .accessibilityIdentifier("search.field")
         }
         .padding(8)
         .background {
@@ -86,6 +87,7 @@ struct SearchScreen: View {
                         PosterView(movie: movie)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("movie.\(movie.id)")
                 }
 
                 HorizontalSection(
@@ -98,6 +100,7 @@ struct SearchScreen: View {
                         PersonView(cast: cast)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("person.\(cast.id)")
                 }
             }
             .padding(.vertical)
@@ -171,6 +174,7 @@ struct SearchScreen: View {
             .contentShape(Capsule())
             .accessibilityLabel(Text(keyword.name))
             .accessibilityAddTraits(.isButton)
+            .accessibilityIdentifier("suggestion.\(keyword.id)")
     }
 }
 

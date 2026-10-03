@@ -190,5 +190,12 @@ final class DIContainer {
         container
             .autoregister(WatchListViewModel.self, initializer: WatchListViewModel.init)
             .inObjectScope(.transient)
+
+        #if DEBUG
+        // Registered last so the stubs replace the network-backed repositories.
+        if UITestConfiguration.isEnabled {
+            UITestDependencies.register(in: container)
+        }
+        #endif
     }
 }
