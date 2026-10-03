@@ -14,8 +14,6 @@ final class AuthRepositoryImpl: AuthRepository {
     private let callbackURLScheme = "movieexplorer"
     private let redirectTo = "movieexplorer://auth-callback"
 
-    private var session: AuthSession?
-
     init(
         service: AuthServiceProtocol,
         sessionStore: SessionStore,
@@ -24,15 +22,14 @@ final class AuthRepositoryImpl: AuthRepository {
         self.service = service
         self.sessionStore = sessionStore
         self.webAuthPresenter = webAuthPresenter
-        self.session = sessionStore.load()
     }
 
     var isLoggedIn: Bool {
-        session != nil
+        sessionStore.load() != nil
     }
 
     func currentAccountId() -> Int? {
-        session?.accountId
+        sessionStore.load()?.accountId
     }
 
     func login() async throws {
@@ -50,13 +47,10 @@ final class AuthRepositoryImpl: AuthRepository {
         let accessToken = try await service.createAccessToken(requestToken: requestToken)
         let accountId = try await service.getAccountId(accessToken: accessToken)
 
-        let newSession = AuthSession(accessToken: accessToken, accountId: accountId)
-        sessionStore.save(newSession)
-        session = newSession
+        sessionStore.save(AuthSession(accessToken: accessToken, accountId: accountId))
     }
 
     func logout() {
         sessionStore.clear()
-        session = nil
     }
 }

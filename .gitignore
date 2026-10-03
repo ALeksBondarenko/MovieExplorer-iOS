@@ -8,3 +8,8 @@ Secrets.xcconfig
 *.xcconfig.local
 .env
 .env.*
+# Xcode per-user data
+xcuserdata/
+
+# Claude
+.claude/

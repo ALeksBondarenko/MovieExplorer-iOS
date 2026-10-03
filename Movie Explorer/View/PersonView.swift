@@ -12,7 +12,7 @@ struct PersonView: View {
     
     var body: some View {
         VStack {
-            CachedAsyncImage(url: URL(string: "https://image.tmdb.org/t/p/w500\(cast.profilePath ?? "")")) { image in
+            CachedAsyncImage(url: URL(string: "https://image.tmdb.org/t/p/w185\(cast.profilePath ?? "")")) { image in
                 image.resizable()
                     .scaledToFill()
             } placeholder: {

@@ -7,6 +7,7 @@
 import UIKit
 import Combine
 
+@MainActor
 final class ImageLoader: ObservableObject {
     @Published var imageState: ImageState = .idle
     
@@ -33,7 +34,7 @@ final class ImageLoader: ObservableObject {
             task = Task {
                 do {
                     let (data, _) = try await URLSession.shared.data(from: url)
-                    if let uiImage = UIImage(data: data) {
+                    if let uiImage = await UIImage(data: data)?.byPreparingForDisplay() {
                         cache.setImage(uiImage, for: url)
                         self.imageState = .loaded(uiImage)
                     }

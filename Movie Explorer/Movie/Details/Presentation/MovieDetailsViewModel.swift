@@ -44,7 +44,7 @@ final class MovieDetailsViewModel: ViewModel {
                 self.state = .success(
                     movieDetails,
                     images,
-                    videos.filter { $0.type == "Trailer" },
+                    videos.filter { $0.type == "Trailer" && $0.site == "YouTube" },
                     casts,
                     favorite: status?.favorite ?? false,
                     watchLater: status?.watchlist ?? false

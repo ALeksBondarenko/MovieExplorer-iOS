@@ -71,9 +71,9 @@ struct PersonScreen: View {
                     
                     ScrollViewReader { proxy in
                         ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 10) {
+                            LazyHStack(spacing: 10) {
                                 ForEach(Array(photos.enumerated()), id: \.element.filePath) { index, photo in
-                                    CachedAsyncImage(url: URL(string: "https://image.tmdb.org/t/p/w500\(photo.filePath)")) { image in
+                                    CachedAsyncImage(url: URL(string: "https://image.tmdb.org/t/p/h632\(photo.filePath)")) { image in
                                         image.resizable()
                                     } placeholder: {
                                         ProgressView()
@@ -124,10 +124,12 @@ struct PersonScreen: View {
     @ViewBuilder
     func Header(person: Person)  -> some View {
         HStack(alignment: .top) {
-            AsyncImage(url: URL(string: "https://image.tmdb.org/t/p/w500\(person.profilePath ?? "" )")) { image in
+            CachedAsyncImage(url: URL(string: "https://image.tmdb.org/t/p/h632\(person.profilePath ?? "" )")) { image in
                 image.resizable()
             } placeholder: {
                 ProgressView()
+            } failure: { _ in
+                
             }
             .frame(width: 160, height: 240)
             .cornerRadius(16)

@@ -594,6 +594,23 @@
         }
       }
     },
+    "playTrailer" : {
+      "comment" : "Accessibility label for the button that plays a trailer.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play trailer"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Смотреть трейлер"
+          }
+        }
+      }
+    },
     "posterUnavailable" : {
       "extractionState" : "manual",
       "localizations" : {

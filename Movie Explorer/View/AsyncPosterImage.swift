@@ -17,7 +17,7 @@ struct AsyncPosterImage: View {
     
     var body: some View {
         if let posterPath = posterPath {
-            CachedAsyncImage(url: URL(string: "https://image.tmdb.org/t/p/w500\(posterPath)")) { image in
+            CachedAsyncImage(url: URL(string: "https://image.tmdb.org/t/p/w342\(posterPath)")) { image in
                 image.resizable()
             } placeholder: {
                 Progress()

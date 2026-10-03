@@ -102,7 +102,7 @@ struct MovieDetailsScreen: View {
 
                 ScrollViewReader { proxy in
                     ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 4) {
+                        LazyHStack(spacing: 4) {
                             ForEach(Array(images.enumerated()), id: \.element.filePath) { index, image in
                                 CachedAsyncImage(url: URL(string: "https://image.tmdb.org/t/p/w500\(image.filePath)")) { image in
                                     image.resizable()
@@ -148,9 +148,7 @@ struct MovieDetailsScreen: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         LazyHStack {
                             ForEach(videos, id: \.key) { video in
-                                VideoView(videoID: video.key)
-                                    .frame(width: 340, height: 180)
-                                    .cornerRadius(12)
+                                TrailerView(video: video)
                             }
                         }.padding(.horizontal)
                     }
@@ -164,7 +162,7 @@ struct MovieDetailsScreen: View {
                         .padding(.top)
 
                     ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 10) {
+                        LazyHStack(spacing: 10) {
                             ForEach(casts, id: \.id) { cast in
                                 NavigationLink(value: Route.person(cast)) {
                                     PersonView(cast: cast)
@@ -221,7 +219,7 @@ struct MovieDetailsScreen: View {
             CachedAsyncImage(
                 url: URL(
                     string:
-                        "https://image.tmdb.org/t/p/original\(movieDetails.backdropPath ?? image?.filePath ?? "")"
+                        "https://image.tmdb.org/t/p/w1280\(movieDetails.backdropPath ?? image?.filePath ?? "")"
                 )
             ) { image in
                 image.resizable()

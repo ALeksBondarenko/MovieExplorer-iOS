@@ -27,7 +27,9 @@ final class DIContainer {
             .inObjectScope(.container)
 
         container
-            .register(SessionStore.self) { _ in KeychainSessionStore() }
+            .register(SessionStore.self) { _ in
+                CachedSessionStore(wrapping: KeychainSessionStore())
+            }
             .inObjectScope(.container)
 
         container
