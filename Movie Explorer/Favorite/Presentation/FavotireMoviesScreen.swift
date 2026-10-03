@@ -17,27 +17,18 @@ struct FavotireMoviesScreen: View {
     
     var body: some View {
         Group {
-            switch viewModel.state {
-            case .idle,.loading:
-                FullScreenProgressView()
-            case .empty:
-                EmptyMoviesView()
-            case .content(let movies, let error):
-                FavoriteMovies(
-                    movies: movies,
-                    refresh: viewModel.refreshFavotireMovies,
-                    loadNextPage: viewModel.fetchMoreFavotireMovies
-                )
-                .alerError(
-                    error: error,
-                    onRetry: viewModel.reloadLastPage,
-                    onCancel: viewModel.clearError,
-                )
-            case .unauthenticated:
+            if viewModel.isAuthenticated {
+                PaginatedView(paginator: viewModel.movies) { _ in
+                    MoviesGridView(paginator: viewModel.movies, spacing: 12)
+                } empty: {
+                    EmptyMoviesView()
+                }
+            } else {
                 LoginPromptView(login: viewModel.login)
             }
-        }.onAppear {
-            viewModel.fetchFavotireMovies()
+        }
+        .onAppear {
+            viewModel.updateAuthentication()
         }
     }
 
@@ -70,32 +61,6 @@ struct FavotireMoviesScreen: View {
             }
         }
         .padding()
-    }
-    
-    @ViewBuilder
-    func FavoriteMovies(
-        movies: [Movie],
-        refresh: @escaping @Sendable () -> Void,
-        loadNextPage: @escaping @Sendable () -> Void
-    ) -> some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            LazyVGrid(columns: [GridItem(.flexible()),GridItem(.flexible())], spacing: 12) {
-                ForEach(movies, id: \.id) { movie in
-                    NavigationLink(value: Route.details(movie)) {
-                        PosterView(movie: movie)
-                            .onAppear {
-                                if movie == movies.last {
-                                    loadNextPage()
-                                }
-                            }
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal)
-        }.refreshable {
-            refresh()
-        }
     }
 }
 

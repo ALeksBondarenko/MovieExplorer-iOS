@@ -17,54 +17,12 @@ struct GenreByMoviesScreen: View {
     }
 
     var body: some View {
-        Group {
-            switch viewModel.state {
-            case .idle, .loading:
-                FullScreenProgressView()
-            case .content(let movies, let error):
-                MoviesView(
-                    movies: movies,
-                    refresh: viewModel.refreshMovies,
-                    loadNextPage: viewModel.fetchMoreMovies
-                ).alerError(
-                    error: error,
-                    onRetry: viewModel.refreshMovies,
-                    onCancel: viewModel.clearError
-                )
-            }
+        PaginatedView(paginator: viewModel.movies) { _ in
+            MoviesGridView(paginator: viewModel.movies)
         }
         .navigationTitle(viewModel.title)
         .toolbarBackground(.ultraThickMaterial, for: .navigationBar)
         .toolbarBackgroundVisibility(.visible, for: .navigationBar)
-        .onAppear {
-            viewModel.fetchMovies()
-        }
-    }
-
-    @ViewBuilder
-    func MoviesView(
-        movies: [Movie],
-        refresh: @escaping @Sendable () -> Void,
-        loadNextPage: @escaping @Sendable () -> Void
-    ) -> some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())]) {
-                ForEach(movies, id: \.id) { movie in
-                    NavigationLink(value: Route.details(movie)) {
-                        PosterView(movie: movie)
-                            .onAppear {
-                                if movie == movies.last {
-                                    loadNextPage()
-                                }
-                            }
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal)
-        }.refreshable {
-            refresh()
-        }
     }
 }
 

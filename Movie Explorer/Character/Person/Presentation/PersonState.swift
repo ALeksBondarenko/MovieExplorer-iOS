@@ -9,6 +9,6 @@ import Foundation
 
 enum PersonState {
     case loading
-    case content(Person,[PersonImage],[Movie], Error?)
+    case content(Person, [PersonImage])
     case error(_ error: Error)
 }

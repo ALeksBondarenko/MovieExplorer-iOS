@@ -5,30 +5,21 @@
 //  Created by Александр Бондаренко on 07.03.2026.
 //
 
-import Foundation
 import Testing
-
 @testable import Movie_Explorer
+import Foundation
 
+/// Pagination itself is covered by `PaginatorTests`; these tests check
+/// authentication handling and the paginator wiring.
 @MainActor
 struct WatchListViewModelTests {
 
     final class MockWatchListRepository: WatchListRepository {
         var pages: [Int: Page] = [:]
-        var errors: [Int: Error] = [:]
-        var delayNanosecondsByPage: [Int: UInt64] = [:]
-        private(set) var callCount = 0
         private(set) var requestedPages: [Int] = []
 
         func fetchMovies(page: Int) async throws -> Page {
-            callCount += 1
             requestedPages.append(page)
-            if let delay = delayNanosecondsByPage[page], delay > 0 {
-                try await Task.sleep(nanoseconds: delay)
-            }
-            if let error = errors[page] {
-                throw error
-            }
             guard let result = pages[page] else {
                 Issue.record("Page \(page) not found")
                 throw MockError.missingPage
@@ -63,343 +54,93 @@ struct WatchListViewModelTests {
 
     enum MockError: Error {
         case missingPage
-        case failed
     }
 
     let firstMovie = Movie(id: 1, title: "Toy Story", overview: "", posterPath: nil, releaseDate: nil)
     let secondMovie = Movie(id: 2, title: "Finding Nemo", overview: "", posterPath: nil, releaseDate: nil)
-    let thirdMovie = Movie(id: 3, title: "Cars", overview: "", posterPath: nil, releaseDate: nil)
 
     @Test
-    func testFetchMoviesSuccessContent() async {
-        let repository = MockWatchListRepository()
-        repository.pages[1] = Page(page: 1, results: [firstMovie], totalPages: 1)
+    func testIsAuthenticatedWhenLoggedIn() {
         let authRepository = MockAuthRepository()
         authRepository.accountId = 1
 
-        let viewModel = WatchListViewModel(repository: repository, authRepository: authRepository)
+        let viewModel = WatchListViewModel(repository: MockWatchListRepository(), authRepository: authRepository)
 
-        viewModel.fetchMovies()
-
-        await waitForFinalState(viewModel: viewModel)
-
-        switch viewModel.state {
-        case .content(let movies, let error):
-            #expect(movies == [firstMovie])
-            #expect(error == nil)
-        default:
-            Issue.record("Expected content state")
-        }
+        #expect(viewModel.isAuthenticated)
     }
 
     @Test
-    func testFetchMoviesSuccessEmpty() async {
-        let repository = MockWatchListRepository()
-        repository.pages[1] = Page(page: 1, results: [], totalPages: 1)
-        let authRepository = MockAuthRepository()
-        authRepository.accountId = 1
+    func testIsNotAuthenticatedWhenLoggedOut() {
+        let viewModel = WatchListViewModel(repository: MockWatchListRepository(), authRepository: MockAuthRepository())
 
-        let viewModel = WatchListViewModel(repository: repository, authRepository: authRepository)
-
-        viewModel.fetchMovies()
-
-        await waitForFinalState(viewModel: viewModel)
-
-        switch viewModel.state {
-        case .empty:
-            // ok
-            break
-        default:
-            Issue.record("Expected empty state")
-        }
+        #expect(viewModel.isAuthenticated == false)
     }
 
     @Test
-    func testFetchMoviesFailureSetsError() async {
-        let repository = MockWatchListRepository()
-        repository.errors[1] = MockError.failed
-        let authRepository = MockAuthRepository()
-        authRepository.accountId = 1
-
-        let viewModel = WatchListViewModel(repository: repository, authRepository: authRepository)
-
-        viewModel.fetchMovies()
-
-        await waitForFinalState(viewModel: viewModel)
-
-        switch viewModel.state {
-        case .content(let movies, let error):
-            #expect(movies.isEmpty)
-            if case MockError.failed? = error {
-                // ok
-            } else {
-                Issue.record("Unexpected error type")
-            }
-        default:
-            Issue.record("Expected content state with error")
-        }
-    }
-
-    @Test
-    func testFetchMoreMoviesAppendsResults() async {
+    func testMoviesLoadWatchListPages() async {
         let repository = MockWatchListRepository()
         repository.pages[1] = Page(page: 1, results: [firstMovie], totalPages: 2)
         repository.pages[2] = Page(page: 2, results: [secondMovie], totalPages: 2)
         let authRepository = MockAuthRepository()
         authRepository.accountId = 1
-
         let viewModel = WatchListViewModel(repository: repository, authRepository: authRepository)
 
-        viewModel.fetchMovies()
-        await waitForFinalState(viewModel: viewModel)
+        viewModel.movies.loadIfNeeded()
+        await waitUntilSettled(viewModel.movies)
+        viewModel.movies.loadMoreIfNeeded(after: firstMovie)
+        await waitUntilSettled(viewModel.movies)
 
-        viewModel.fetchMoreMovies()
-        await waitUntil {
-            if case .content(let movies, _) = viewModel.state { return movies.count == 2 }
-            return false
-        }
-
-        switch viewModel.state {
-        case .content(let movies, let error):
-            #expect(movies == [firstMovie, secondMovie])
-            #expect(error == nil)
-        default:
-            Issue.record("Expected content state after loading more")
-        }
+        #expect(viewModel.movies.items == [firstMovie, secondMovie])
+        #expect(repository.requestedPages == [1, 2])
     }
 
     @Test
-    func testFetchMoreMoviesFailurePreservesExistingMovies() async {
-        let repository = MockWatchListRepository()
-        repository.pages[1] = Page(page: 1, results: [firstMovie], totalPages: 2)
-        repository.errors[2] = MockError.failed
-        let authRepository = MockAuthRepository()
-        authRepository.accountId = 1
-
-        let viewModel = WatchListViewModel(repository: repository, authRepository: authRepository)
-
-        viewModel.fetchMovies()
-        await waitForFinalState(viewModel: viewModel)
-
-        viewModel.fetchMoreMovies()
-        await waitUntil {
-            if case .content(_, let error) = viewModel.state { return error != nil }
-            return false
-        }
-
-        switch viewModel.state {
-        case .content(let movies, let error):
-            #expect(movies == [firstMovie])
-            #expect(error != nil)
-        default:
-            Issue.record("Expected content state with a non-blocking pagination error")
-        }
-    }
-
-    @Test
-    func testReloadLastPageRetriesTheFailedPageAndKeepsExistingMovies() async {
-        let repository = MockWatchListRepository()
-        repository.pages[1] = Page(page: 1, results: [firstMovie], totalPages: 2)
-        repository.errors[2] = MockError.failed
-        let authRepository = MockAuthRepository()
-        authRepository.accountId = 1
-
-        let viewModel = WatchListViewModel(repository: repository, authRepository: authRepository)
-
-        viewModel.fetchMovies()
-        await waitForFinalState(viewModel: viewModel)
-
-        viewModel.fetchMoreMovies()
-        await waitUntil {
-            if case .content(_, let error) = viewModel.state { return error != nil }
-            return false
-        }
-
-        repository.errors[2] = nil
-        repository.pages[2] = Page(page: 2, results: [secondMovie], totalPages: 2)
-
-        viewModel.reloadLastPage()
-        await waitUntil {
-            if case .content(let movies, _) = viewModel.state { return movies.count == 2 }
-            return false
-        }
-
-        switch viewModel.state {
-        case .content(let movies, let error):
-            #expect(movies == [firstMovie, secondMovie])
-            #expect(error == nil)
-        default:
-            Issue.record("Expected content state after successful reload")
-        }
-        #expect(repository.requestedPages == [1, 2, 2])
-    }
-
-    @Test
-    func testClearErrorKeepsMoviesAndRemovesError() async {
-        let repository = MockWatchListRepository()
-        repository.pages[1] = Page(page: 1, results: [firstMovie], totalPages: 2)
-        repository.errors[2] = MockError.failed
-        let authRepository = MockAuthRepository()
-        authRepository.accountId = 1
-
-        let viewModel = WatchListViewModel(repository: repository, authRepository: authRepository)
-
-        viewModel.fetchMovies()
-        await waitForFinalState(viewModel: viewModel)
-
-        viewModel.fetchMoreMovies()
-        await waitUntil {
-            if case .content(_, let error) = viewModel.state { return error != nil }
-            return false
-        }
-
-        viewModel.clearError()
-
-        switch viewModel.state {
-        case .content(let movies, let error):
-            #expect(movies == [firstMovie])
-            #expect(error == nil)
-        default:
-            Issue.record("Expected content state after clearing error")
-        }
-    }
-
-    @Test
-    func testConcurrentFetchMoreMoviesDoesNotSkipOrDuplicatePages() async {
-        let repository = MockWatchListRepository()
-        repository.pages[1] = Page(page: 1, results: [firstMovie], totalPages: 3)
-        repository.pages[2] = Page(page: 2, results: [secondMovie], totalPages: 3)
-        repository.pages[3] = Page(page: 3, results: [thirdMovie], totalPages: 3)
-        repository.delayNanosecondsByPage[2] = 100_000_000
-        let authRepository = MockAuthRepository()
-        authRepository.accountId = 1
-
-        let viewModel = WatchListViewModel(repository: repository, authRepository: authRepository)
-
-        viewModel.fetchMovies()
-        await waitForFinalState(viewModel: viewModel)
-
-        // Simulates duplicate onAppear firing for the last cell before the first page-2
-        // request has resolved.
-        viewModel.fetchMoreMovies()
-        viewModel.fetchMoreMovies()
-
-        await waitUntil(timeout: 3) {
-            if case .content(let movies, _) = viewModel.state { return movies.count == 2 }
-            return false
-        }
-
-        guard case .content(let movies, let error) = viewModel.state else {
-            Issue.record("Expected content state")
-            return
-        }
-        #expect(movies == [firstMovie, secondMovie])
-        #expect(error == nil)
-
-        // Page 2 must not have been skipped in favor of page 3.
-        viewModel.fetchMoreMovies()
-        await waitUntil(timeout: 3) {
-            if case .content(let movies, _) = viewModel.state { return movies.count == 3 }
-            return false
-        }
-        guard case .content(let finalMovies, _) = viewModel.state else {
-            Issue.record("Expected content state")
-            return
-        }
-        #expect(finalMovies == [firstMovie, secondMovie, thirdMovie])
-    }
-
-    @Test
-    func testRefreshMoviesResetsAndLoadsFirstPage() async {
+    func testLoginSuccessAuthenticatesAndResetsMovies() async {
         let repository = MockWatchListRepository()
         repository.pages[1] = Page(page: 1, results: [firstMovie], totalPages: 1)
         let authRepository = MockAuthRepository()
-        authRepository.accountId = 1
-
-        let viewModel = WatchListViewModel(repository: repository, authRepository: authRepository)
-
-        viewModel.refreshMovies()
-
-        await waitForFinalState(viewModel: viewModel)
-
-        switch viewModel.state {
-        case .content(let movies, let error):
-            #expect(movies == [firstMovie])
-            #expect(error == nil)
-        default:
-            Issue.record("Expected content state after refresh")
-        }
-    }
-
-    @Test
-    func testFetchMoviesShowsUnauthenticatedWhenLoggedOut() async {
-        let repository = MockWatchListRepository()
-        let authRepository = MockAuthRepository()
-
-        let viewModel = WatchListViewModel(repository: repository, authRepository: authRepository)
-
-        viewModel.fetchMovies()
-
-        switch viewModel.state {
-        case .unauthenticated:
-            // ok
-            break
-        default:
-            Issue.record("Expected unauthenticated state")
-        }
-    }
-
-    @Test
-    func testLoginSuccessTriggersFetch() async {
-        let repository = MockWatchListRepository()
-        repository.pages[1] = Page(page: 1, results: [firstMovie], totalPages: 1)
-        let authRepository = MockAuthRepository()
-
         let viewModel = WatchListViewModel(repository: repository, authRepository: authRepository)
 
         viewModel.login()
-        await waitForFinalState(viewModel: viewModel)
+        await waitUntil { viewModel.isAuthenticated }
 
         #expect(authRepository.loginCallCount == 1)
-        switch viewModel.state {
-        case .content(let movies, let error):
-            #expect(movies == [firstMovie])
-            #expect(error == nil)
-        default:
-            Issue.record("Expected content state after successful login")
+        #expect(viewModel.isAuthenticated)
+        guard case .idle = viewModel.movies.phase else {
+            Issue.record("Expected movies to wait for the screen to load them")
+            return
         }
     }
 
     @Test
     func testLoginFailureStaysUnauthenticated() async {
-        let repository = MockWatchListRepository()
         let authRepository = MockAuthRepository()
         authRepository.loginError = AuthError.cancelled
-
-        let viewModel = WatchListViewModel(repository: repository, authRepository: authRepository)
+        let viewModel = WatchListViewModel(repository: MockWatchListRepository(), authRepository: authRepository)
 
         viewModel.login()
-        await waitForFinalState(viewModel: viewModel)
+        await waitUntil { authRepository.loginCallCount == 1 }
+        await Task.yield()
 
-        switch viewModel.state {
-        case .unauthenticated:
-            // ok
-            break
-        default:
-            Issue.record("Expected unauthenticated state after failed login")
-        }
+        #expect(viewModel.isAuthenticated == false)
     }
-}
 
-@MainActor
-private func waitForFinalState(viewModel: WatchListViewModel) async {
-    while true {
-        switch viewModel.state {
-        case .idle, .loading:
-            await Task.yield()
-        case .empty, .content, .unauthenticated:
-            return
-        }
+    @Test
+    func testUpdateAuthenticationAfterLogoutResetsMovies() async {
+        let repository = MockWatchListRepository()
+        repository.pages[1] = Page(page: 1, results: [firstMovie], totalPages: 1)
+        let authRepository = MockAuthRepository()
+        authRepository.accountId = 1
+        let viewModel = WatchListViewModel(repository: repository, authRepository: authRepository)
+
+        viewModel.movies.loadIfNeeded()
+        await waitUntilSettled(viewModel.movies)
+
+        authRepository.logout()
+        viewModel.updateAuthentication()
+
+        #expect(viewModel.isAuthenticated == false)
+        #expect(viewModel.movies.items.isEmpty)
     }
 }
 

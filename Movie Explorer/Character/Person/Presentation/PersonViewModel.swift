@@ -8,76 +8,58 @@
 import Foundation
 import Combine
 
+@MainActor
 final class PersonViewModel: ViewModel {
-    
+
     private let repository: PersonRepository
     private let cast: Cast
-    private var page: Int = 1
-    private var totalPage: Int = 1
-    
+
     @Published private(set) var state: PersonState = .loading
-    
+    let movies: Paginator<Movie>
+
     init(repository: PersonRepository, cast: Cast) {
         self.repository = repository
         self.cast = cast
-    }
-    
-    func loadInitMoviePage() {
-        addTask { @MainActor [weak self] in
-            guard let self else { return }
-            do {
-                async let personResult = self.repository.getPerson(personId: self.cast.id)
-                async let photosResult = self.repository.getPersonImages(personId: self.cast.id)
-                async let pageResult = self.repository.getMoviesWithPerson(personId: self.cast.id, page: 1)
-
-                let (person, photos, page) = try await (personResult, photosResult, pageResult)
-                self.page = 1
-                self.totalPage = page.totalPages
-                self.state = .content(person, photos, page.results, nil)
-            } catch is CancellationError {
-                return
-            } catch let urlError as URLError where urlError.code == .cancelled {
-                return
-            } catch {
-                log(error)
-                self.state = .error(error)
-            }
+        self.movies = Paginator<Movie> { [repository, personId = cast.id] page in
+            try await repository.getMoviesWithPerson(personId: personId, page: page)
         }
     }
-    
-    func loadNextMoviePage() {
-        guard page < totalPage else { return }
-        guard case .content(let person, let photos, let movies, _) = state else { return }
-        fetchPage(person: person, photos: photos, movies: movies, nextPage: page + 1)
-    }
 
-    func reloadLastPage() {
-        guard case .content(let person, let photos, let movies, _) = state else { return }
-        fetchPage(person: person, photos: photos, movies: movies, nextPage: page + 1)
-    }
-
-    func clearError() {
-        guard case .content(let person, let photos, let movies, _) = state else { return }
-        self.state = .content(person, photos, movies, nil)
-    }
-
-    private func fetchPage(person: Person, photos: [PersonImage], movies: [Movie] = [], nextPage: Int) {
-        cancelAllTasks()
+    /// Loads the person once; returning to the screen does not reload it.
+    func load() {
+        movies.loadIfNeeded()
+        if case .content = state { return }
         addTask { @MainActor [weak self] in
-            guard let self else { return }
-            do {
-                let result = try await self.repository.getMoviesWithPerson(personId: self.cast.id, page: nextPage)
-                self.page = nextPage
-                self.totalPage = result.totalPages
-                self.state = .content(person, photos, movies + result.results, nil)
-            } catch is CancellationError {
-                return
-            } catch let urlError as URLError where urlError.code == .cancelled {
-                return
-            } catch {
-                log(error)
-                self.state = .content(person, photos, movies, error)
-            }
+            await self?.loadPerson()
+        }
+    }
+
+    /// Repeats the failed initial load.
+    func retry() {
+        state = .loading
+        load()
+    }
+
+    func refresh() async {
+        await loadPerson()
+        await movies.refresh()
+    }
+
+    private func loadPerson() async {
+        do {
+            async let personResult = repository.getPerson(personId: cast.id)
+            async let photosResult = repository.getPersonImages(personId: cast.id)
+
+            let (person, photos) = try await (personResult, photosResult)
+            state = .content(person, photos)
+        } catch is CancellationError {
+            return
+        } catch let urlError as URLError where urlError.code == .cancelled {
+            return
+        } catch {
+            log(error)
+            if case .content = state { return }   // keep shown data on a failed refresh
+            state = .error(error)
         }
     }
 }

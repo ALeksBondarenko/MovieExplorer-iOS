@@ -24,36 +24,24 @@ struct PersonScreen: View {
             switch viewModel.state {
             case .loading:
                 FullScreenProgressView()
-            case .content(let person, let photos, let movies, let error):
-                PersonView(
-                    person: person,
-                    photos: photos,
-                    movies: movies,
-                    refresh: viewModel.loadInitMoviePage,
-                    loadNextMoviePage: viewModel.loadNextMoviePage,
-                )
-                .alerError(
-                    error: error,
-                    onRetry: viewModel.reloadLastPage,
-                    onCancel: viewModel.clearError,
-                )
+            case .content(let person, let photos):
+                PersonView(person: person, photos: photos)
+                    .alerError(
+                        error: viewModel.movies.error,
+                        onRetry: { viewModel.movies.retry() },
+                        onCancel: { viewModel.movies.clearError() }
+                    )
             case .error(let error):
-                ErrorView(error: error, onRetry: viewModel.loadInitMoviePage, onCancel: { dismiss() })
+                ErrorView(error: error, onRetry: viewModel.retry, onCancel: { dismiss() })
             }
         }
         .onAppear {
-            viewModel.loadInitMoviePage()
+            viewModel.load()
         }
     }
     
     @ViewBuilder
-    func PersonView(
-        person: Person,
-        photos: [PersonImage],
-        movies: [Movie],
-        refresh: @escaping @Sendable () -> Void,
-        loadNextMoviePage: @escaping @Sendable () -> Void,
-    ) -> some View {
+    func PersonView(person: Person, photos: [PersonImage]) -> some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading) {
                 Header(person: person)
@@ -118,31 +106,18 @@ struct PersonScreen: View {
                     }
                 }
                 
-                Text("movies")
-                    .font(.title2.bold())
-                    .foregroundColor(.primary)
-                    .padding(.top, 12)
-                    .padding(.horizontal)
-                
-                ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(spacing: 12) {
-                        ForEach(movies, id: \.id) { movie in
-                            NavigationLink(value: Route.details(movie)) {
-                                PosterView(movie: movie)
-                                    .onAppear {
-                                        if movie == movies.last {
-                                            loadNextMoviePage()
-                                        }
-                                    }
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.horizontal, 15)
+                if !viewModel.movies.items.isEmpty {
+                    Text("movies")
+                        .font(.title2.bold())
+                        .foregroundColor(.primary)
+                        .padding(.top, 12)
+                        .padding(.horizontal)
+
+                    MoviesRowView(paginator: viewModel.movies)
                 }
             }
         }.refreshable {
-            refresh()
+            await viewModel.refresh()
         }
     }
     

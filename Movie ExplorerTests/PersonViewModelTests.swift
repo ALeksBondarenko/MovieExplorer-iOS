@@ -24,10 +24,11 @@ struct PersonViewModelTests {
         var pages: [Int: Page] = [:]
         var errors: [Int: Error] = [:]
         var delayNanosecondsByPage: [Int: UInt64] = [:]
-        private(set) var callCount = 0
+        private(set) var personCallCount = 0
         private(set) var requestedPages: [Int] = []
 
         func getPerson(personId: Int) async throws -> Person {
+            personCallCount += 1
             if let error = errorPerson {
                 throw error
             }
@@ -46,7 +47,6 @@ struct PersonViewModelTests {
         }
 
         func getMoviesWithPerson(personId: Int, page: Int) async throws -> Page {
-            callCount += 1
             requestedPages.append(page)
             if let delay = delayNanosecondsByPage[page], delay > 0 {
                 try await Task.sleep(nanoseconds: delay)
@@ -81,33 +81,28 @@ struct PersonViewModelTests {
 
         let viewModel = PersonViewModel(repository: repository, cast: cast)
 
-        viewModel.loadInitMoviePage()
-
+        viewModel.load()
         await waitForContentOrError(viewModel: viewModel)
+        await waitUntilSettled(viewModel.movies)
 
-        guard case let .content(person, personImages, movies, error) = viewModel.state else {
+        guard case let .content(person, personImages) = viewModel.state else {
             Issue.record("Expected content state")
             return
         }
         #expect(person == person1)
         #expect(personImages == images)
-        #expect(movies == [firstMovie])
-        #expect(error == nil)
+        #expect(viewModel.movies.items == [firstMovie])
     }
 
     @Test
     func testInitialLoadFailureSetsErrorState() async {
         let repository = MockPersonRepository()
         repository.errorPerson = MockError.error
-        // getPerson is what's expected to fail, but loadInitMoviePage() fetches
-        // person/photos/movies concurrently via async let, so the movies page is
-        // still requested — configure it so the mock doesn't flag it as missing.
         repository.pages[1] = Page(page: 1, results: [], totalPages: 1)
 
         let viewModel = PersonViewModel(repository: repository, cast: cast)
 
-        viewModel.loadInitMoviePage()
-
+        viewModel.load()
         await waitForContentOrError(viewModel: viewModel)
 
         if case .error = viewModel.state {
@@ -118,194 +113,117 @@ struct PersonViewModelTests {
     }
 
     @Test
-    func testLoadNextMoviePageAppendsResults() async {
+    func testMoviesFailureDoesNotHideThePerson() async {
         let repository = MockPersonRepository()
         repository.person = person1
-        repository.pages[1] = Page(page: 1, results: [firstMovie], totalPages: 2)
-        repository.pages[2] = Page(page: 2, results: [secondMovie], totalPages: 2)
+        repository.errors[1] = MockError.error
 
         let viewModel = PersonViewModel(repository: repository, cast: cast)
-        viewModel.loadInitMoviePage()
+
+        viewModel.load()
         await waitForContentOrError(viewModel: viewModel)
+        await waitUntilSettled(viewModel.movies)
 
-        viewModel.loadNextMoviePage()
-        await waitUntil {
-            if case .content(_, _, let movies, _) = viewModel.state { return movies.count == 2 }
-            return false
-        }
-
-        guard case let .content(_, _, movies, error) = viewModel.state else {
-            Issue.record("Expected content state")
+        guard case .content = viewModel.state else {
+            Issue.record("Expected content state even if movies failed")
             return
         }
-        #expect(movies == [firstMovie, secondMovie])
-        #expect(error == nil)
+        guard case .failed = viewModel.movies.phase else {
+            Issue.record("Expected movies to fail")
+            return
+        }
     }
 
     @Test
-    func testLoadNextMoviePageDoesNothingAfterLastPage() async {
+    func testLoadDoesNotReloadLoadedPerson() async {
         let repository = MockPersonRepository()
         repository.person = person1
         repository.pages[1] = Page(page: 1, results: [firstMovie], totalPages: 1)
 
         let viewModel = PersonViewModel(repository: repository, cast: cast)
-        viewModel.loadInitMoviePage()
-        await waitForContentOrError(viewModel: viewModel)
 
-        let callsBefore = repository.callCount
-        viewModel.loadNextMoviePage()
+        viewModel.load()
+        await waitForContentOrError(viewModel: viewModel)
+        await waitUntilSettled(viewModel.movies)
+
+        // Returning to the screen calls load() again.
+        viewModel.load()
         await Task.yield()
 
-        #expect(repository.callCount == callsBefore)
+        #expect(repository.personCallCount == 1)
+        #expect(repository.requestedPages == [1])
     }
 
     @Test
-    func testLoadNextMoviePageFailurePreservesExistingMovies() async {
+    func testRetryAfterFailureLoadsPersonAgain() async {
         let repository = MockPersonRepository()
-        repository.person = person1
-        repository.pages[1] = Page(page: 1, results: [firstMovie], totalPages: 2)
-        repository.errors[2] = MockError.error
+        repository.errorPerson = MockError.error
+        repository.pages[1] = Page(page: 1, results: [], totalPages: 1)
 
         let viewModel = PersonViewModel(repository: repository, cast: cast)
-        viewModel.loadInitMoviePage()
+
+        viewModel.load()
         await waitForContentOrError(viewModel: viewModel)
 
-        viewModel.loadNextMoviePage()
-        await waitUntil {
-            if case .content(_, _, _, let error) = viewModel.state { return error != nil }
-            return false
-        }
+        repository.errorPerson = nil
+        repository.person = person1
+        viewModel.retry()
+        await waitForContentOrError(viewModel: viewModel)
 
-        guard case let .content(_, _, movies, error) = viewModel.state else {
-            Issue.record("Expected content state with a non-blocking pagination error")
+        guard case let .content(person, _) = viewModel.state else {
+            Issue.record("Expected content state after retry")
             return
         }
-        #expect(movies == [firstMovie])
-        #expect(error != nil)
+        #expect(person == person1)
     }
 
     @Test
-    func testReloadLastPageRetriesTheFailedPageAndKeepsExistingMovies() async {
+    func testMoviesLoadNextPage() async {
         let repository = MockPersonRepository()
         repository.person = person1
         repository.pages[1] = Page(page: 1, results: [firstMovie], totalPages: 2)
-        repository.errors[2] = MockError.error
-
-        let viewModel = PersonViewModel(repository: repository, cast: cast)
-        viewModel.loadInitMoviePage()
-        await waitForContentOrError(viewModel: viewModel)
-
-        viewModel.loadNextMoviePage()
-        await waitUntil {
-            if case .content(_, _, _, let error) = viewModel.state { return error != nil }
-            return false
-        }
-
-        repository.errors[2] = nil
         repository.pages[2] = Page(page: 2, results: [secondMovie], totalPages: 2)
 
-        viewModel.reloadLastPage()
-        await waitUntil {
-            if case .content(_, _, let movies, _) = viewModel.state { return movies.count == 2 }
-            return false
-        }
+        let viewModel = PersonViewModel(repository: repository, cast: cast)
 
-        guard case let .content(_, _, movies, error) = viewModel.state else {
-            Issue.record("Expected content state after successful reload")
-            return
-        }
-        #expect(movies == [firstMovie, secondMovie])
-        #expect(error == nil)
-        #expect(repository.requestedPages == [1, 2, 2])
+        viewModel.load()
+        await waitUntilSettled(viewModel.movies)
+        viewModel.movies.loadMoreIfNeeded(after: firstMovie)
+        await waitUntilSettled(viewModel.movies)
+
+        #expect(viewModel.movies.items == [firstMovie, secondMovie])
+        #expect(repository.requestedPages == [1, 2])
     }
 
     @Test
-    func testClearErrorKeepsMoviesAndRemovesError() async {
+    func testRefreshReloadsPersonAndMovies() async {
         let repository = MockPersonRepository()
         repository.person = person1
-        repository.pages[1] = Page(page: 1, results: [firstMovie], totalPages: 2)
-        repository.errors[2] = MockError.error
+        repository.pages[1] = Page(page: 1, results: [firstMovie], totalPages: 1)
 
         let viewModel = PersonViewModel(repository: repository, cast: cast)
-        viewModel.loadInitMoviePage()
+
+        viewModel.load()
         await waitForContentOrError(viewModel: viewModel)
+        await waitUntilSettled(viewModel.movies)
 
-        viewModel.loadNextMoviePage()
-        await waitUntil {
-            if case .content(_, _, _, let error) = viewModel.state { return error != nil }
-            return false
-        }
+        repository.pages[1] = Page(page: 1, results: [thirdMovie], totalPages: 1)
+        await viewModel.refresh()
 
-        viewModel.clearError()
-
-        guard case let .content(_, _, movies, error) = viewModel.state else {
-            Issue.record("Expected content state after clearing error")
-            return
-        }
-        #expect(movies == [firstMovie])
-        #expect(error == nil)
-    }
-
-    @Test
-    func testConcurrentLoadNextMoviePageDoesNotSkipOrDuplicatePages() async {
-        let repository = MockPersonRepository()
-        repository.person = person1
-        repository.pages[1] = Page(page: 1, results: [firstMovie], totalPages: 3)
-        repository.pages[2] = Page(page: 2, results: [secondMovie], totalPages: 3)
-        repository.pages[3] = Page(page: 3, results: [thirdMovie], totalPages: 3)
-        repository.delayNanosecondsByPage[2] = 100_000_000
-
-        let viewModel = PersonViewModel(repository: repository, cast: cast)
-        viewModel.loadInitMoviePage()
-        await waitForContentOrError(viewModel: viewModel)
-
-        // Simulates duplicate onAppear firing for the last cell before the first page-2
-        // request has resolved.
-        viewModel.loadNextMoviePage()
-        viewModel.loadNextMoviePage()
-
-        await waitUntil(timeout: 3) {
-            if case .content(_, _, let movies, _) = viewModel.state { return movies.count == 2 }
-            return false
-        }
-
-        guard case let .content(_, _, movies, error) = viewModel.state else {
-            Issue.record("Expected content state")
-            return
-        }
-        #expect(movies == [firstMovie, secondMovie])
-        #expect(error == nil)
-
-        // Page 2 must not have been skipped in favor of page 3.
-        viewModel.loadNextMoviePage()
-        await waitUntil(timeout: 3) {
-            if case .content(_, _, let movies, _) = viewModel.state { return movies.count == 3 }
-            return false
-        }
-        guard case let .content(_, _, finalMovies, _) = viewModel.state else {
-            Issue.record("Expected content state")
-            return
-        }
-        #expect(finalMovies == [firstMovie, secondMovie, thirdMovie])
+        #expect(repository.personCallCount == 2)
+        #expect(viewModel.movies.items == [thirdMovie])
     }
 }
 
 @MainActor
 private func waitForContentOrError(viewModel: PersonViewModel) async {
-    while true {
+    let deadline = Date().addingTimeInterval(3)
+    while Date() < deadline {
         switch viewModel.state {
         case .loading:
             await Task.yield()
         case .content, .error:
             return
         }
-    }
-}
-
-@MainActor
-private func waitUntil(timeout: TimeInterval = 3, _ condition: () -> Bool) async {
-    let deadline = Date().addingTimeInterval(timeout)
-    while !condition() && Date() < deadline {
-        await Task.yield()
     }
 }

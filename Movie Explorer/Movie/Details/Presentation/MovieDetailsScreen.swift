@@ -30,9 +30,7 @@ struct MovieDetailsScreen: View {
                 let videos,
                 let casts,
                 let favorite,
-                let watchLater,
-                let similarMovies,
-                let error,
+                let watchLater
             ):
                 MovieDetailsView(
                     movieDetails: movie,
@@ -40,18 +38,16 @@ struct MovieDetailsScreen: View {
                     videos: videos,
                     casts: casts,
                     favorite: favorite,
-                    watchLater: watchLater,
-                    similarMovies: similarMovies,
-                    loadMoreSimilarMovies: viewModel.loadMoreSimilar,
+                    watchLater: watchLater
                 ).alerError(
-                    error: error,
-                    onRetry: viewModel.loadMoreSimilar,
-                    onCancel: viewModel.clearError,
+                    error: viewModel.similar.error,
+                    onRetry: { viewModel.similar.retry() },
+                    onCancel: { viewModel.similar.clearError() }
                 )
             case .failure(let error):
                 ErrorView(
                     error: error,
-                    onRetry: viewModel.requestDetails,
+                    onRetry: viewModel.retry,
                     onCancel: { dismiss() }
                 )
             }
@@ -68,9 +64,7 @@ struct MovieDetailsScreen: View {
         videos: [Video],
         casts: [Cast],
         favorite: Bool,
-        watchLater: Bool,
-        similarMovies: [Movie],
-        loadMoreSimilarMovies: @escaping @Sendable () -> Void,
+        watchLater: Bool
     ) -> some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading) {
@@ -181,29 +175,14 @@ struct MovieDetailsScreen: View {
                     }
                 }
                 
-                if !similarMovies.isEmpty {
+                if !viewModel.similar.items.isEmpty {
                     Text("similarMovies")
                         .font(.title2.bold())
                         .foregroundColor(.primary)
                         .padding(.top, 12)
                         .padding(.horizontal)
-                    
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        LazyHStack(spacing: 12) {
-                            ForEach(similarMovies, id: \.id) { movie in
-                                NavigationLink(value: Route.details(movie)) {
-                                    PosterView(movie: movie)
-                                        .onAppear {
-                                            if movie == similarMovies.last {
-                                                loadMoreSimilarMovies()
-                                            }
-                                        }
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                        .padding(.horizontal, 15)
-                    }
+
+                    MoviesRowView(paginator: viewModel.similar)
                 }
             }
         }
